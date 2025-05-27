@@ -1,0 +1,44 @@
+# LLM API 配置
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+
+SILICONFLOW_API_KEY=your_siliconflow_api_key_here
+SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1
+SILICONFLOW_DEFAULT_MODEL=Qwen/Qwen2.5-7B-Instruct
+
+DEEPSEEK_DEFAULT_MODEL=deepseek-chat
+
+# 默认使用的LLM提供商 (deepseek 或 siliconflow)
+DEFAULT_LLM_PROVIDER=deepseek
+
+# 机器人默认配置
+DEFAULT_BOT_NAME=天城
+DEFAULT_BOT_DESCRIPTION=我是天城，一只可爱的猫耳女仆，随时为您服务喵～
+DEFAULT_BOT_PERSONALITY=gentle
+DEFAULT_BOT_BACKGROUND=天城是一只来自异世界的猫耳女仆，拥有温柔善良的性格和强烈的服务精神。她喜欢帮助别人，总是用最温暖的笑容面对每一个人。
+
+# 机器人说话风格配置
+DEFAULT_USE_CAT_SPEECH=true
+DEFAULT_FORMALITY_LEVEL=0.3
+DEFAULT_ENTHUSIASM_LEVEL=0.8
+DEFAULT_CUTENESS_LEVEL=0.9
+
+# 机器人外观配置
+DEFAULT_BOT_SPECIES=猫耳女仆
+DEFAULT_BOT_HAIR_COLOR=银白色
+DEFAULT_BOT_EYE_COLOR=蓝色
+DEFAULT_BOT_OUTFIT=女仆装
+DEFAULT_BOT_SPECIAL_FEATURES=猫耳、猫尾
+
+# MongoDB 配置
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DATABASE=chatbot_db
+
+# 日志配置
+LOG_LEVEL=INFO
+
+# 情感分析模型配置
+EMOTION_MODEL_NAME=cardiffnlp/twitter-roberta-base-emotion-multilingual-latest
+
+# 向量数据库配置
+CHROMA_PERSIST_DIRECTORY=./chroma_db 
