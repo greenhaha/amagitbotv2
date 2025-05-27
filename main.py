@@ -462,6 +462,14 @@ async def get_environment_config() -> Dict[str, Any]:
             },
             "llm_config": {
                 "default_llm_provider": settings.default_llm_provider
+            },
+            "prompt_config": {
+                "personality_prompts": settings.personality_prompts,
+                "language_style_prompts": settings.language_style_prompts,
+                "emotion_expression_prompts": settings.emotion_expression_prompts,
+                "conversation_behavior_prompts": settings.conversation_behavior_prompts,
+                "role_specific_prompts": settings.role_specific_prompts,
+                "forbidden_behaviors": settings.forbidden_behaviors
             }
         }
         

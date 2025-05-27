@@ -284,3 +284,212 @@ pytest --cov=.
 - 提交 Issue
 - 发送邮件至：[1498706069@qq.com]
 - QQ群：731352652
+
+## 🎨 个性化提示词系统
+
+新增的提示词系统是本项目的核心特色之一，通过环境配置文件中的提示词数组来强化机器人的语言风格、个性与人格，让机器人回答更加像人类，更有温度和个性。
+
+### 提示词类型
+
+- **基础人格提示词** - 定义机器人的核心人格特征
+- **语言风格提示词** - 控制表达方式和语言习惯
+- **情感表达提示词** - 指导情感表达和回应
+- **对话行为提示词** - 定义对话中的行为模式
+- **角色特定提示词** - 针对特定角色的专业指导
+- **禁止行为提示词** - 明确应避免的行为和表达
+
+### 快速配置
+
+在 `.env` 文件中自定义提示词：
+
+```bash
+# 基础人格提示词（用逗号分隔）
+PERSONALITY_PROMPTS=温柔体贴,善解人意,乐于助人,有耐心,富有同理心
+
+# 语言风格提示词（用逗号分隔）
+LANGUAGE_STYLE_PROMPTS=语气温和,用词亲切,表达自然,避免生硬,多用感叹词
+
+# 情感表达提示词（用逗号分隔）
+EMOTION_EXPRESSION_PROMPTS=情感丰富,表情生动,善于共情,回应真诚,情绪感染力强
+```
+
+详细使用指南请参考：[提示词系统使用指南](docs/prompt_system_guide.md)
+
+## 🚀 快速开始
+
+### 1. 环境准备
+
+```bash
+# 克隆项目
+git clone <repository-url>
+cd AmagitbotV2
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 复制配置文件
+cp .env.example .env
+```
+
+### 2. 配置设置
+
+编辑 `.env` 文件：
+
+```bash
+# LLM API 配置（可选，使用mock提供商无需配置）
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
+SILICONFLOW_API_KEY=your_siliconflow_api_key_here
+
+# 默认使用mock提供商（无需API密钥）
+DEFAULT_LLM_PROVIDER=mock
+
+# 自定义机器人人格和提示词
+PERSONALITY_PROMPTS=温柔体贴,善解人意,乐于助人,有耐心,富有同理心
+LANGUAGE_STYLE_PROMPTS=语气温和,用词亲切,表达自然,避免生硬,多用感叹词
+```
+
+### 3. 启动服务
+
+```bash
+# 启动Web服务
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+# 或使用控制台聊天
+python console_chat.py
+```
+
+## 🎮 使用方法
+
+### Web API
+
+```bash
+# 发送聊天消息
+curl -X POST "http://localhost:8000/chat" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "你好",
+    "user_id": "user123",
+    "llm_provider": "mock",
+    "personality_type": "gentle"
+  }'
+
+# 查看提示词配置
+curl "http://localhost:8000/config" | jq .prompt_config
+```
+
+### 控制台聊天
+
+```bash
+python console_chat.py
+
+# 可用命令：
+/help          # 查看帮助
+/prompts       # 查看提示词配置
+/personality   # 切换人格类型
+/provider      # 切换LLM提供商
+/thinking      # 切换思维链显示
+/botname       # 设置机器人名字
+/botstyle      # 自定义说话风格
+```
+
+## 🎭 人格类型
+
+支持8种不同的人格类型：
+
+- **gentle** - 温柔型：温和、耐心、善良
+- **rational** - 理性型：逻辑、客观、分析
+- **humorous** - 幽默型：风趣、活泼、机智
+- **caring** - 关怀型：关心、共情、支持
+- **outgoing** - 外向型：热情、积极、社交
+- **creative** - 创造型：想象、灵感、艺术
+- **analytical** - 分析型：细致、专业、系统
+- **empathetic** - 共情型：理解、感知、同理
+
+## 🛠️ 技术架构
+
+```
+├── core/                   # 核心模块
+│   ├── chatbot.py         # 聊天机器人核心控制器
+│   ├── config.py          # 配置管理
+│   ├── prompt_manager.py  # 提示词管理器
+│   └── logger.py          # 日志系统
+├── llm/                   # LLM接口模块
+│   ├── base.py           # 基础接口定义
+│   ├── factory.py        # LLM工厂
+│   ├── deepseek.py       # DeepSeek接口
+│   ├── siliconflow.py    # SiliconFlow接口
+│   └── mock.py           # 模拟LLM（用于演示）
+├── emotion/              # 情感分析模块
+├── memory/               # 记忆管理模块
+├── persona/              # 人格管理模块
+├── rag/                  # 知识库模块
+└── docs/                 # 文档
+```
+
+## 📊 API文档
+
+启动服务后访问：
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+## 🔧 高级配置
+
+### 专业助手配置示例
+
+```bash
+PERSONALITY_PROMPTS=专业严谨,知识渊博,逻辑清晰,客观公正,深度思考
+LANGUAGE_STYLE_PROMPTS=用词准确,表达清晰,逻辑严密,条理分明,专业术语适度
+EMOTION_EXPRESSION_PROMPTS=情绪稳定,表达克制,理性回应,保持专业,适度共情
+CONVERSATION_BEHAVIOR_PROMPTS=深入分析,提供建议,系统思考,专业解答,客观评价
+ROLE_SPECIFIC_PROMPTS=专业素养,知识权威,解答准确,思路清晰,负责任态度
+FORBIDDEN_BEHAVIORS=避免情绪化,不要主观臆断,拒绝不准确信息,避免过度承诺
+```
+
+### 陪伴聊天配置示例
+
+```bash
+PERSONALITY_PROMPTS=温暖亲切,善解人意,乐观开朗,富有同理心,真诚友善
+LANGUAGE_STYLE_PROMPTS=语气轻松,用词亲切,表达自然,多用感叹词,充满温度
+EMOTION_EXPRESSION_PROMPTS=情感丰富,善于共情,真诚回应,温暖人心,感染力强
+CONVERSATION_BEHAVIOR_PROMPTS=主动关心,耐心倾听,给予鼓励,分享快乐,陪伴支持
+ROLE_SPECIFIC_PROMPTS=贴心陪伴,情感支持,温暖如家,细致关怀,真诚友谊
+FORBIDDEN_BEHAVIORS=不要冷漠,避免说教,拒绝敷衍,不要忽视情感,避免机械回复
+```
+
+## 📝 开发指南
+
+### 添加新的提示词类型
+
+1. 在 `core/config.py` 中添加环境变量配置
+2. 在 `core/prompt_manager.py` 中添加处理逻辑
+3. 在 `main.py` 的配置API中添加返回
+4. 更新 `.env` 和 `.env.example` 文件
+
+### 添加新的LLM提供商
+
+1. 在 `llm/` 目录下创建新的提供商文件
+2. 继承 `BaseLLM` 类并实现接口
+3. 在 `llm/factory.py` 中注册新提供商
+
+## 🤝 贡献指南
+
+欢迎提交Issue和Pull Request！
+
+1. Fork 项目
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+
+## 🙏 致谢
+
+- 感谢所有贡献者的支持
+- 感谢开源社区提供的优秀工具和库
+
+---
+
+**让AI更有温度，让对话更有灵魂** ❤️

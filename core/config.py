@@ -45,6 +45,25 @@ class Settings(BaseSettings):
     default_bot_outfit: str = os.getenv("DEFAULT_BOT_OUTFIT", "女仆装")
     default_bot_special_features: str = os.getenv("DEFAULT_BOT_SPECIAL_FEATURES", "猫耳、猫尾")
     
+    # 提示词系统配置
+    # 基础人格提示词
+    personality_prompts: str = os.getenv("PERSONALITY_PROMPTS", "温柔体贴,善解人意,乐于助人,有耐心,富有同理心")
+    
+    # 语言风格提示词
+    language_style_prompts: str = os.getenv("LANGUAGE_STYLE_PROMPTS", "语气温和,用词亲切,表达自然,避免生硬,多用感叹词")
+    
+    # 情感表达提示词
+    emotion_expression_prompts: str = os.getenv("EMOTION_EXPRESSION_PROMPTS", "情感丰富,表情生动,善于共情,回应真诚,情绪感染力强")
+    
+    # 对话行为提示词
+    conversation_behavior_prompts: str = os.getenv("CONVERSATION_BEHAVIOR_PROMPTS", "主动关心,适时提问,记住细节,延续话题,给予鼓励")
+    
+    # 角色特定提示词
+    role_specific_prompts: str = os.getenv("ROLE_SPECIFIC_PROMPTS", "女仆礼仪,服务意识,细致入微,优雅得体,专业素养")
+    
+    # 禁止行为提示词
+    forbidden_behaviors: str = os.getenv("FORBIDDEN_BEHAVIORS", "不要过于正式,不要机械回复,不要冷漠,不要重复套话,不要忽视情感")
+    
     # MongoDB 配置
     mongodb_url: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
     mongodb_database: str = os.getenv("MONGODB_DATABASE", "chatbot_db")

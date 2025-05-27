@@ -8,6 +8,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from core.logger import logger
+from core.prompt_manager import prompt_manager
 from llm.factory import LLMFactory
 from llm.base import ChatMessage, ChatResponse
 from emotion.analyzer import EmotionAnalyzer, EmotionResult
@@ -119,28 +120,23 @@ class ChatbotCore:
                 bot_profile = await self.memory_manager.create_default_bot_profile(request.user_id)
             
             # 7. 生成个性化系统提示
-            personality_prompt = self.persona_manager.get_bot_personality_prompt(adjusted_persona, bot_profile)
+            # 构建上下文信息
+            context_info = {
+                "user_mood": emotion_result.description,
+                "conversation_topic": self._extract_topic_from_message(request.message),
+                "recent_memories": [memory['content'][:50] + "..." for memory in relevant_memories[:2]] if relevant_memories else [],
+                "persona_state": {
+                    "mood": adjusted_persona.mood,
+                    "energy_level": adjusted_persona.energy_level,
+                    "main_traits": {
+                        trait: value for trait, value in adjusted_persona.traits.items() 
+                        if value > 0.6
+                    }
+                }
+            }
             
-            # 构建记忆上下文
-            memory_context = ""
-            if relevant_memories:
-                memory_context = "\n相关记忆:\n" + "\n".join([
-                    f"- {memory['content'][:100]}..." 
-                    for memory in relevant_memories[:2]
-                ])
-            
-            system_prompt = f"""
-{personality_prompt}
-
-当前情绪状态: {adjusted_persona.mood}
-能量水平: {adjusted_persona.energy_level:.1f}
-
-用户情感分析: {emotion_result.description} {emotion_result.emoji}
-
-{memory_context}
-
-请根据你的角色设定、人格特征和当前状态，以及用户的情感状态，给出合适的回应。
-"""
+            # 使用提示词管理器生成完整的系统提示
+            system_prompt = prompt_manager.generate_system_prompt(bot_profile, context_info)
             
             # 8. 构建消息列表
             messages = [ChatMessage(role="system", content=system_prompt)]
@@ -473,6 +469,25 @@ class ChatbotCore:
         except Exception as e:
             logger.error(f"更新机器人档案失败: {e}")
             return False
+    
+    def _extract_topic_from_message(self, message: str) -> str:
+        """从消息中提取对话主题"""
+        # 简单的主题提取逻辑，可以后续优化
+        keywords = {
+            "问候": ["你好", "您好", "hi", "hello", "早上好", "晚上好"],
+            "询问": ["什么", "怎么", "为什么", "如何", "哪里", "谁"],
+            "情感": ["开心", "难过", "生气", "担心", "兴奋", "紧张"],
+            "日常": ["吃饭", "睡觉", "工作", "学习", "休息"],
+            "帮助": ["帮助", "帮忙", "协助", "支持"],
+            "聊天": ["聊天", "说话", "交流", "谈话"]
+        }
+        
+        message_lower = message.lower()
+        for topic, words in keywords.items():
+            if any(word in message_lower for word in words):
+                return topic
+        
+        return "一般对话"
     
     def close(self):
         """关闭资源"""
