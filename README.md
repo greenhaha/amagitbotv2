@@ -1,6 +1,7 @@
 # 🤖 AmagitbotV2 - 多功能聊天机器人系统
-
+![picture](./image/image.png)
 一个支持模块化的多功能聊天机器人系统，具备智能对话、情感分析、动态人格、持久记忆、知识库学习和世界观管理等核心能力。
+(可以自由设定哦！)
 
 ## 🌟 特色角色：露娜·天城 (Luna TanCheng)
 
@@ -285,6 +286,8 @@ DEFAULT_PRIDE_LEVEL=0.8
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
+- 邮箱：1498706069@qq.com
+- QQ群：731352652
 
 ## 📄 许可证
 
