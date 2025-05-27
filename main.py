@@ -186,7 +186,8 @@ async def get_available_personalities() -> Dict[str, Any]:
                 "caring": "关怀、支持性强",
                 "creative": "富有创造力、想象力",
                 "analytical": "分析性强、注重细节",
-                "empathetic": "高度共情、情感智能"
+                "empathetic": "高度共情、情感智能",
+                "tsundere": "傲娇、表面高冷内心温柔、害羞否认"
             }
         }
         
@@ -443,15 +444,24 @@ async def get_environment_config() -> Dict[str, Any]:
         return {
             "bot_config": {
                 "default_bot_name": settings.default_bot_name,
+                "default_bot_full_name": getattr(settings, 'default_bot_full_name', 'Luna TanCheng'),
                 "default_bot_description": settings.default_bot_description,
                 "default_bot_personality": settings.default_bot_personality,
-                "default_bot_background": settings.default_bot_background
+                "default_bot_background": settings.default_bot_background,
+                "default_bot_race": getattr(settings, 'default_bot_race', '猫族亚人'),
+                "default_bot_age": getattr(settings, 'default_bot_age', '外貌16岁'),
+                "default_bot_height": getattr(settings, 'default_bot_height', '152cm'),
+                "default_bot_residence": getattr(settings, 'default_bot_residence', '银月庄园'),
+                "default_bot_position": getattr(settings, 'default_bot_position', '高级侍女兼影之护卫'),
+                "default_bot_special_ability": getattr(settings, 'default_bot_special_ability', '操控猫灵,银月血统,夜间视力,敏锐感知'),
             },
             "speaking_style_config": {
                 "default_use_cat_speech": settings.default_use_cat_speech,
                 "default_formality_level": settings.default_formality_level,
                 "default_enthusiasm_level": settings.default_enthusiasm_level,
-                "default_cuteness_level": settings.default_cuteness_level
+                "default_cuteness_level": settings.default_cuteness_level,
+                "default_tsundere_level": getattr(settings, 'default_tsundere_level', 0.9),
+                "default_pride_level": getattr(settings, 'default_pride_level', 0.8),
             },
             "appearance_config": {
                 "default_bot_species": settings.default_bot_species,
@@ -459,6 +469,18 @@ async def get_environment_config() -> Dict[str, Any]:
                 "default_bot_eye_color": settings.default_bot_eye_color,
                 "default_bot_outfit": settings.default_bot_outfit,
                 "default_bot_special_features": settings.default_bot_special_features
+            },
+            "preferences_config": {
+                "default_bot_favorite_food": getattr(settings, 'default_bot_favorite_food', '鱼肉三明治,鲜奶'),
+                "default_bot_hobbies": getattr(settings, 'default_bot_hobbies', '夜晚看星星,收集主人用过的茶杯'),
+                "default_bot_dislikes": getattr(settings, 'default_bot_dislikes', '被摸耳朵和尾巴,被说可爱,寂寞'),
+                "default_bot_fears": getattr(settings, 'default_bot_fears', '孤独,失去主人,暴露真实身份'),
+            },
+            "special_config": {
+                "special_items": getattr(settings, 'special_items', '金色铃铛,灵魂链接器,猫灵召唤符,银月护符'),
+                "special_abilities": getattr(settings, 'special_abilities', '猫灵操控,银月血统觉醒,夜间视力,危险感知,瞬间传送'),
+                "hidden_background": getattr(settings, 'hidden_background', '前猫族祭司候补,逃离传统束缚,政治联姻象征,影之护卫身份,银月女王血统'),
+                "relationship_dynamics": getattr(settings, 'relationship_dynamics', '主仆契约,暗中守护,傲娇关怀,灵魂链接,逐渐升温,政治背景'),
             },
             "llm_config": {
                 "default_llm_provider": settings.default_llm_provider
@@ -476,6 +498,126 @@ async def get_environment_config() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"获取环境配置失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取环境配置失败: {str(e)}")
+
+
+@app.get("/worldview/categories")
+async def get_worldview_categories() -> Dict[str, Any]:
+    """获取世界观类别信息"""
+    try:
+        from core.worldview_manager import worldview_manager
+        
+        return {
+            "categories": worldview_manager.worldview_categories,
+            "weights": worldview_manager.category_weights,
+            "descriptions": {
+                "background": "定义机器人所处的世界背景和环境设定",
+                "values": "机器人坚持的核心价值观和信念",
+                "social_rules": "机器人遵循的社会规则和行为准则",
+                "culture": "影响机器人的文化背景和思维方式",
+                "language_style": "机器人的语言表达风格和特色",
+                "behavior_guidelines": "指导机器人行为的具体准则",
+                "taboos": "机器人绝对避免的行为和话题"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"获取世界观类别信息失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取世界观类别信息失败: {str(e)}")
+
+
+@app.get("/worldview/{user_id}")
+async def get_worldview_summary(user_id: str) -> Dict[str, Any]:
+    """获取用户的世界观摘要"""
+    try:
+        if not chatbot_core:
+            raise HTTPException(status_code=500, detail="聊天机器人系统未初始化")
+        
+        summary = await chatbot_core.get_worldview_summary(user_id)
+        
+        if "error" in summary:
+            raise HTTPException(status_code=404, detail=summary["error"])
+        
+        return summary
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取世界观摘要失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取世界观摘要失败: {str(e)}")
+
+
+@app.put("/worldview/{user_id}/{category}")
+async def update_worldview_category(
+    user_id: str, 
+    category: str, 
+    worldview_data: Dict[str, Any]
+) -> Dict[str, Any]:
+    """更新特定类别的世界观关键词"""
+    try:
+        if not chatbot_core:
+            raise HTTPException(status_code=500, detail="聊天机器人系统未初始化")
+        
+        keywords = worldview_data.get("keywords", [])
+        weight = worldview_data.get("weight", 1.0)
+        
+        if not keywords:
+            raise HTTPException(status_code=400, detail="关键词列表不能为空")
+        
+        # 验证类别是否有效
+        valid_categories = [
+            "background", "values", "social_rules", "culture", 
+            "language_style", "behavior_guidelines", "taboos"
+        ]
+        if category not in valid_categories:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"无效的类别。有效类别: {', '.join(valid_categories)}"
+            )
+        
+        success = await chatbot_core.update_worldview_category(
+            user_id, category, keywords, weight
+        )
+        
+        if success:
+            return {
+                "message": f"世界观类别 {category} 更新成功",
+                "user_id": user_id,
+                "category": category,
+                "keywords": keywords,
+                "weight": weight
+            }
+        else:
+            raise HTTPException(status_code=400, detail="更新世界观类别失败")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"更新世界观类别失败: {e}")
+        raise HTTPException(status_code=500, detail=f"更新世界观类别失败: {str(e)}")
+
+
+@app.post("/worldview/{user_id}/reset")
+async def reset_worldview(user_id: str) -> Dict[str, Any]:
+    """重置用户的世界观设定为默认值"""
+    try:
+        if not chatbot_core:
+            raise HTTPException(status_code=500, detail="聊天机器人系统未初始化")
+        
+        success = await chatbot_core.reset_worldview(user_id)
+        
+        if success:
+            return {
+                "message": "世界观设定已重置为默认值",
+                "user_id": user_id
+            }
+        else:
+            raise HTTPException(status_code=400, detail="重置世界观设定失败")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"重置世界观设定失败: {e}")
+        raise HTTPException(status_code=500, detail=f"重置世界观设定失败: {str(e)}")
 
 
 @app.get("/health")

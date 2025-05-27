@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from core.logger import logger
 from core.prompt_manager import prompt_manager
+from core.worldview_manager import worldview_manager
 from llm.factory import LLMFactory
 from llm.base import ChatMessage, ChatResponse
 from emotion.analyzer import EmotionAnalyzer, EmotionResult
@@ -119,7 +120,20 @@ class ChatbotCore:
             if not bot_profile:
                 bot_profile = await self.memory_manager.create_default_bot_profile(request.user_id)
             
-            # 7. 生成个性化系统提示
+            # 7. 获取或创建世界观关键词
+            worldview_keywords = await self.memory_manager.get_worldview_keywords(request.user_id)
+            if not worldview_keywords:
+                # 首次使用，从环境变量创建世界观关键词
+                worldview_keywords = worldview_manager.create_worldview_keywords(request.user_id)
+                if worldview_keywords:
+                    await self.memory_manager.save_worldview_keywords(worldview_keywords)
+            
+            # 8. 分析世界观影响
+            worldview_analysis = worldview_manager.analyze_worldview_influence(
+                request.message, worldview_keywords
+            )
+            
+            # 9. 生成个性化系统提示
             # 构建上下文信息
             context_info = {
                 "user_mood": emotion_result.description,
@@ -132,13 +146,16 @@ class ChatbotCore:
                         trait: value for trait, value in adjusted_persona.traits.items() 
                         if value > 0.6
                     }
-                }
+                },
+                "worldview_influence": worldview_analysis
             }
             
             # 使用提示词管理器生成完整的系统提示
-            system_prompt = prompt_manager.generate_system_prompt(bot_profile, context_info)
+            system_prompt = prompt_manager.generate_system_prompt(
+                bot_profile, context_info, worldview_keywords
+            )
             
-            # 8. 构建消息列表
+            # 10. 构建消息列表
             messages = [ChatMessage(role="system", content=system_prompt)]
             
             # 添加历史对话上下文
@@ -151,7 +168,7 @@ class ChatbotCore:
             # 添加当前用户消息
             messages.append(ChatMessage(role="user", content=request.message))
             
-            # 9. 调用LLM生成回复
+            # 11. 调用LLM生成回复
             llm = LLMFactory.create_llm(request.llm_provider)
             llm_response = await llm.chat_completion(
                 messages=messages,
@@ -160,7 +177,7 @@ class ChatbotCore:
                 temperature=0.7
             )
             
-            # 10. 保存对话到记忆系统
+            # 12. 保存对话到记忆系统
             user_message = ConversationMessage(
                 role="user",
                 content=request.message,
@@ -176,7 +193,7 @@ class ChatbotCore:
             await self.memory_manager.add_message(request.user_id, session_id, user_message)
             await self.memory_manager.add_message(request.user_id, session_id, assistant_message)
             
-            # 11. 添加到知识库
+            # 13. 添加到知识库
             emotion_info = {
                 "emotion": emotion_result.emotion.value,
                 "confidence": emotion_result.confidence
@@ -190,7 +207,7 @@ class ChatbotCore:
                 emotion_info=emotion_info
             )
             
-            # 12. 构建响应
+            # 14. 构建响应
             response = ChatbotResponse(
                 response=f"{llm_response.content} {emotion_result.emoji}",
                 session_id=session_id,
@@ -223,7 +240,8 @@ class ChatbotCore:
                     "llm_usage": llm_response.usage,
                     "processing_time": datetime.now().isoformat(),
                     "bot_name": bot_profile.bot_name,
-                    "bot_personality": bot_profile.personality_type
+                    "bot_personality": bot_profile.personality_type,
+                    "worldview_influence": worldview_analysis
                 }
             )
             
@@ -468,6 +486,84 @@ class ChatbotCore:
             
         except Exception as e:
             logger.error(f"更新机器人档案失败: {e}")
+            return False
+    
+    async def get_worldview_summary(self, user_id: str) -> Dict[str, Any]:
+        """
+        获取用户的世界观摘要
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            Dict[str, Any]: 世界观摘要
+        """
+        try:
+            worldview_keywords = await self.memory_manager.get_worldview_keywords(user_id)
+            summary = worldview_manager.get_worldview_summary(worldview_keywords)
+            return summary
+            
+        except Exception as e:
+            logger.error(f"获取世界观摘要失败: {e}")
+            return {"error": str(e)}
+    
+    async def update_worldview_category(
+        self, 
+        user_id: str, 
+        category: str, 
+        keywords: List[str], 
+        weight: float = 1.0
+    ) -> bool:
+        """
+        更新特定类别的世界观关键词
+        
+        Args:
+            user_id: 用户ID
+            category: 关键词类别
+            keywords: 关键词列表
+            weight: 权重
+            
+        Returns:
+            bool: 是否成功
+        """
+        try:
+            success = await self.memory_manager.update_worldview_keywords(
+                user_id, category, keywords, weight
+            )
+            if success:
+                logger.info(f"更新世界观类别 {category}")
+            return success
+            
+        except Exception as e:
+            logger.error(f"更新世界观类别失败: {e}")
+            return False
+    
+    async def reset_worldview(self, user_id: str) -> bool:
+        """
+        重置用户的世界观设定为默认值
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            bool: 是否成功
+        """
+        try:
+            # 删除现有世界观关键词
+            await self.memory_manager.delete_worldview_keywords(user_id)
+            
+            # 重新创建默认世界观关键词
+            worldview_keywords = worldview_manager.create_worldview_keywords(user_id)
+            if worldview_keywords:
+                success = await self.memory_manager.save_worldview_keywords(worldview_keywords)
+                if success:
+                    logger.info(f"重置用户 {user_id} 的世界观设定")
+                return success
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"重置世界观设定失败: {e}")
             return False
     
     def _extract_topic_from_message(self, message: str) -> str:

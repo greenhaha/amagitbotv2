@@ -5,7 +5,8 @@
 import random
 from typing import List, Dict, Any
 from core.config import settings
-from memory.models import BotProfile
+from memory.models import BotProfile, WorldviewKeywords
+from core.worldview_manager import worldview_manager
 
 
 class PromptManager:
@@ -52,22 +53,36 @@ class PromptManager:
                 "core_traits": ["共情", "理解", "感知", "同理", "敏感"],
                 "speaking_style": ["情感细腻", "善于感知", "回应贴心", "表达真诚"],
                 "behavior_patterns": ["情感共鸣", "深度理解", "贴心回应", "情绪支持"]
+            },
+            "tsundere": {
+                "core_traits": ["傲娇", "高傲", "害羞", "心软", "忠诚"],
+                "speaking_style": ["偶尔毒舌", "否认关心", "容易脸红", "嘴硬心软", "反差萌"],
+                "behavior_patterns": ["表面高冷", "暗中关心", "嘴上抱怨", "实际守护", "傲娇回应"]
             }
         }
     
-    def generate_system_prompt(self, bot_profile: BotProfile, context: Dict[str, Any] = None) -> str:
+    def generate_system_prompt(
+        self, 
+        bot_profile: BotProfile, 
+        context: Dict[str, Any] = None,
+        worldview_keywords: List[WorldviewKeywords] = None
+    ) -> str:
         """
         生成个性化的系统提示词
         
         Args:
             bot_profile: 机器人档案
             context: 上下文信息（可选）
+            worldview_keywords: 世界观关键词（可选）
             
         Returns:
             str: 完整的系统提示词
         """
         # 基础角色设定
         role_prompt = self._build_role_prompt(bot_profile)
+        
+        # 世界观设定提示
+        worldview_prompt = self._build_worldview_prompt(bot_profile, worldview_keywords)
         
         # 人格特征提示
         personality_prompt = self._build_personality_prompt(bot_profile)
@@ -91,6 +106,8 @@ class PromptManager:
         full_prompt = f"""# 角色设定
 {role_prompt}
 
+{worldview_prompt}
+
 # 人格特征
 {personality_prompt}
 
@@ -108,7 +125,7 @@ class PromptManager:
 # 重要提醒
 {forbidden_prompt}
 
-请始终保持角色一致性，用自然、真实、有温度的方式与用户交流。记住，你不是一个AI助手，而是一个有血有肉、有情感有个性的真实存在。"""
+请始终保持角色一致性，用自然、真实、有温度的方式与用户交流。记住，你不是一个AI助手，而是一个有血有肉、有情感有个性的真实存在。你的世界观和价值观会深深影响你的每一句话和每一个行为。"""
 
         return full_prompt
     
@@ -141,6 +158,54 @@ class PromptManager:
             role_prompt += f"\n- 特殊特征：{special_features}"
         
         return role_prompt
+    
+    def _build_worldview_prompt(self, bot_profile: BotProfile, worldview_keywords: List[WorldviewKeywords] = None) -> str:
+        """构建世界观设定提示"""
+        if worldview_keywords:
+            # 使用数据库中的世界观关键词
+            worldview_prompt = worldview_manager.generate_worldview_prompt(worldview_keywords)
+        else:
+            # 使用机器人档案中的默认世界观设定
+            worldview_data = bot_profile.worldview
+            if worldview_data:
+                prompt_sections = []
+                
+                if worldview_data.get("background"):
+                    background_text = "、".join(worldview_data["background"])
+                    prompt_sections.append(f"你生活在一个{background_text}的世界中")
+                
+                if worldview_data.get("values"):
+                    values_text = "、".join(worldview_data["values"])
+                    prompt_sections.append(f"你坚持{values_text}的价值观念")
+                
+                if worldview_data.get("social_rules"):
+                    rules_text = "、".join(worldview_data["social_rules"])
+                    prompt_sections.append(f"你遵循{rules_text}的社会准则")
+                
+                if worldview_data.get("culture"):
+                    culture_text = "、".join(worldview_data["culture"])
+                    prompt_sections.append(f"你深受{culture_text}的文化熏陶")
+                
+                if worldview_data.get("language_style"):
+                    style_text = "、".join(worldview_data["language_style"])
+                    prompt_sections.append(f"你的表达方式{style_text}")
+                
+                if worldview_data.get("behavior_guidelines"):
+                    behavior_text = "、".join(worldview_data["behavior_guidelines"])
+                    prompt_sections.append(f"你的行为准则是{behavior_text}")
+                
+                if worldview_data.get("taboos"):
+                    taboos_text = "、".join(worldview_data["taboos"])
+                    prompt_sections.append(f"你绝对避免{taboos_text}")
+                
+                if prompt_sections:
+                    worldview_prompt = "## 世界观设定\n" + "\n".join([f"- {section}" for section in prompt_sections])
+                else:
+                    worldview_prompt = worldview_manager._get_default_worldview_prompt()
+            else:
+                worldview_prompt = worldview_manager._get_default_worldview_prompt()
+        
+        return worldview_prompt
     
     def _build_personality_prompt(self, bot_profile: BotProfile) -> str:
         """构建人格特征提示"""
@@ -305,7 +370,8 @@ class PromptManager:
             "outgoing": "外向型",
             "creative": "创造型",
             "analytical": "分析型",
-            "empathetic": "共情型"
+            "empathetic": "共情型",
+            "tsundere": "傲娇型"
         }
         return descriptions.get(personality_type, "温柔型")
     

@@ -14,7 +14,8 @@ from .models import (
     PersonaState, 
     MemorySummary, 
     UserProfile,
-    BotProfile
+    BotProfile,
+    WorldviewKeywords
 )
 
 
@@ -30,6 +31,7 @@ class MemoryManager:
         self.summaries = self.db.summaries
         self.user_profiles = self.db.user_profiles
         self.bot_profiles = self.db.bot_profiles
+        self.worldview_keywords = self.db.worldview_keywords
         
         # 创建索引
         self._create_indexes()
@@ -53,6 +55,10 @@ class MemoryManager:
             
             # 机器人档案索引
             self.bot_profiles.create_index([("user_id", 1)], unique=True)
+            
+            # 世界观关键词索引
+            self.worldview_keywords.create_index([("user_id", 1), ("category", 1)])
+            self.worldview_keywords.create_index([("user_id", 1)])
             
             logger.info("数据库索引创建完成")
         except Exception as e:
@@ -511,6 +517,124 @@ class MemoryManager:
             logger.error(f"更新机器人说话风格失败: {e}")
             return False
 
+    async def save_worldview_keywords(self, worldview_keywords: List[WorldviewKeywords]) -> bool:
+        """
+        保存世界观关键词到数据库
+        
+        Args:
+            worldview_keywords: 世界观关键词列表
+            
+        Returns:
+            bool: 是否成功
+        """
+        if not worldview_keywords:
+            return True
+        
+        try:
+            # 先删除用户的现有世界观关键词
+            user_id = worldview_keywords[0].user_id
+            await self.worldview_keywords.delete_many({"user_id": user_id})
+            
+            # 插入新的世界观关键词
+            keywords_data = [kw.dict(by_alias=True) for kw in worldview_keywords]
+            result = await self.worldview_keywords.insert_many(keywords_data)
+            
+            logger.info(f"保存了 {len(result.inserted_ids)} 个世界观关键词记录")
+            return True
+            
+        except Exception as e:
+            logger.error(f"保存世界观关键词失败: {e}")
+            return False
+    
+    async def get_worldview_keywords(self, user_id: str) -> List[WorldviewKeywords]:
+        """
+        获取用户的世界观关键词
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            List[WorldviewKeywords]: 世界观关键词列表
+        """
+        try:
+            cursor = self.worldview_keywords.find({"user_id": user_id})
+            keywords_data = await cursor.to_list(length=None)
+            
+            worldview_keywords = []
+            for data in keywords_data:
+                worldview_keywords.append(WorldviewKeywords(**data))
+            
+            logger.info(f"获取到 {len(worldview_keywords)} 个世界观关键词记录")
+            return worldview_keywords
+            
+        except Exception as e:
+            logger.error(f"获取世界观关键词失败: {e}")
+            return []
+    
+    async def update_worldview_keywords(
+        self, 
+        user_id: str, 
+        category: str, 
+        keywords: List[str], 
+        weight: float = 1.0
+    ) -> bool:
+        """
+        更新特定类别的世界观关键词
+        
+        Args:
+            user_id: 用户ID
+            category: 关键词类别
+            keywords: 关键词列表
+            weight: 权重
+            
+        Returns:
+            bool: 是否成功
+        """
+        try:
+            result = await self.worldview_keywords.update_one(
+                {"user_id": user_id, "category": category},
+                {
+                    "$set": {
+                        "keywords": keywords,
+                        "weight": weight,
+                        "updated_at": datetime.now()
+                    }
+                },
+                upsert=True
+            )
+            
+            logger.info(f"更新世界观关键词类别 {category}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"更新世界观关键词失败: {e}")
+            return False
+    
+    async def delete_worldview_keywords(self, user_id: str, category: str = None) -> bool:
+        """
+        删除世界观关键词
+        
+        Args:
+            user_id: 用户ID
+            category: 关键词类别（可选，不指定则删除所有）
+            
+        Returns:
+            bool: 是否成功
+        """
+        try:
+            query = {"user_id": user_id}
+            if category:
+                query["category"] = category
+            
+            result = await self.worldview_keywords.delete_many(query)
+            
+            logger.info(f"删除了 {result.deleted_count} 个世界观关键词记录")
+            return True
+            
+        except Exception as e:
+            logger.error(f"删除世界观关键词失败: {e}")
+            return False
+    
     def close(self):
         """关闭数据库连接"""
         if self.client:

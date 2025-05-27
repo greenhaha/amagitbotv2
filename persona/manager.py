@@ -21,6 +21,7 @@ class PersonalityType(Enum):
     CREATIVE = "creative"      # 创造性
     ANALYTICAL = "analytical"  # 分析性
     EMPATHETIC = "empathetic"  # 共情
+    TSUNDERE = "tsundere"      # 傲娇
 
 
 class MoodType(Enum):
@@ -95,6 +96,15 @@ class PersonaManager:
                 "understanding": 0.8,
                 "detachment": 0.1,
                 "sensitivity": 0.9
+            },
+            PersonalityType.TSUNDERE: {
+                "pride": 0.9,
+                "shyness": 0.8,
+                "caring": 0.8,
+                "denial": 0.9,
+                "vulnerability": 0.7,
+                "loyalty": 0.9,
+                "stubbornness": 0.8
             }
         }
         
