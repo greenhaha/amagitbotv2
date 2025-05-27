@@ -57,6 +57,7 @@ class ConsoleChat:
         print("  🐾 /botinfo - 查看机器人档案")
         print("  🎨 /botstyle - 自定义机器人说话风格")
         print("  ⚙️ /config - 查看环境配置")
+        print("  📝 /prompts - 查看提示词配置")
         print("  🔧 /test - 测试API连接")
         print("  🧹 /clear - 清屏")
         print("  ❓ /help - 显示此帮助")
@@ -294,6 +295,9 @@ class ConsoleChat:
         
         elif cmd == '/config':
             self.show_environment_config()
+        
+        elif cmd == '/prompts':
+            self.show_prompt_config()
         
         elif cmd == '/test':
             self.test_api_connection()
@@ -581,6 +585,48 @@ class ConsoleChat:
                 print(f"❌ 获取环境配置失败: {response.status_code}")
         except Exception as e:
             print(f"❌ 获取环境配置错误: {e}")
+    
+    def show_prompt_config(self):
+        """显示提示词配置信息"""
+        try:
+            response = requests.get(f"{BASE_URL}/config")
+            if response.status_code == 200:
+                data = response.json()
+                print("📝 当前提示词配置:")
+                
+                # 显示各类提示词
+                prompt_categories = {
+                    "基础人格提示词": "personality_prompts",
+                    "语言风格提示词": "language_style_prompts", 
+                    "情感表达提示词": "emotion_expression_prompts",
+                    "对话行为提示词": "conversation_behavior_prompts",
+                    "角色特定提示词": "role_specific_prompts",
+                    "禁止行为提示词": "forbidden_behaviors"
+                }
+                
+                for category_name, config_key in prompt_categories.items():
+                    # 从配置中查找对应的提示词
+                    prompt_value = None
+                    for config_section in data.values():
+                        if isinstance(config_section, dict) and config_key in config_section:
+                            prompt_value = config_section[config_key]
+                            break
+                    
+                    if prompt_value:
+                        print(f"\n  🎯 {category_name}:")
+                        prompts = prompt_value.split(',') if isinstance(prompt_value, str) else []
+                        for i, prompt in enumerate(prompts, 1):
+                            print(f"    {i}. {prompt.strip()}")
+                    else:
+                        print(f"\n  🎯 {category_name}: 未配置")
+                
+                print("\n💡 提示: 这些提示词会影响机器人的语言风格和人格表现")
+                print("💡 可以通过修改 .env 文件中的相应配置来自定义提示词")
+                
+            else:
+                print(f"❌ 获取提示词配置失败: {response.status_code}")
+        except Exception as e:
+            print(f"❌ 获取提示词配置错误: {e}")
     
     def test_api_connection(self):
         """测试API连接"""
